@@ -22,10 +22,9 @@ def _translate_times(time, pressure, travel_times, duration, dt):
     return ser
 
 
-
-def get_gather(station, event_array, duration, dt, velocity, source_type, **kwargs):
+def get_gather(station, event_df, duration, dt, velocity, source_type, **kwargs):
     """Get a single dataframe gather."""
-
+    event_array = event_df[['x', 'y']].values
     dists = np.linalg.norm(event_array - station, axis=1)
     travel_times = dists / velocity
     if source_type.lower() not in SUPPORTED_SOURCE_TYPES:
@@ -39,6 +38,9 @@ def get_gather(station, event_array, duration, dt, velocity, source_type, **kwar
     df = _translate_times(
         time, pressure, travel_times, duration=duration, dt=dt
     )
+    df.columns = event_df['phi']
+    df.index.name = 'time'
+    df.columns.name = "angle"
     return df
 
 
