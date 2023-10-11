@@ -20,7 +20,7 @@ def create_master_layout(figsize=(12, 6)):
     return fig, out
 
 
-def plot_map(station_locations, event_df, ax=None):
+def plot_map(station_locations, event_df, lims=None, ax=None):
     """Plot event and station locations."""
     event_locations = event_df[['x', 'y']].values
     if ax is None:
@@ -33,6 +33,11 @@ def plot_map(station_locations, event_df, ax=None):
     for num, sta in enumerate(station_locations):
         text = f"Sta {num + 1}"
         ax.annotate(text, sta, ha='center', va="bottom")
+
+    if lims is not None:
+        value = np.max(np.abs(lims))
+        ax.set_xlim(-value, value)
+        ax.set_ylim(-value, value)
 
     return ax
 
@@ -87,10 +92,20 @@ def plot_gather(gather, ax=None, exaggeration=3, title=None):
     return ax
 
 
-def plot_corr_trace(corr_stack, ax=None):
+def plot_corr_trace(corr_stack, station_array, velocity=2000, ax=None):
     """Plot the entire correlation stack."""
     if ax is None:
         fig, ax = plt.subplots(1, 1)
     ax.plot(corr_stack.index.values, corr_stack.values)
+
+
+    # add lines indicating true travel time
+    dist = np.linalg.norm(station_array[0] - station_array[1])
+    travel_time = dist / float(velocity)
+    ax.axvline(travel_time, color='red', alpha=0.5, linestyle='--')
+    ax.axvline(-travel_time, color='red', alpha=0.5, linestyle='--')
+
     ax.set_title("Correlation Stack")
+    ax.set_xlabel("Lag Time (s)")
+
     return ax

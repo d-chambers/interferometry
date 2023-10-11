@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from sources import get_gather
+from filter import pass_filter
 
 
 def generate_event_df(
@@ -31,29 +32,51 @@ def generate_event_df(
     return out
 
 
+def get_duration(station_array, event_df, velocity):
+    """Get required duration for gathers."""
+    tt_min = np.inf
+    tt_max = -np.inf
+
+    for sta in station_array:
+        dists = sta - event_df[['x', 'y']]
+        tt = np.linalg.norm(dists, axis=1) / velocity
+
+        tt_min = np.min([tt.min(), tt_min])
+        tt_max = np.max([tt.max(), tt_max])
+
+    return tt_min, tt_max
+
+
 def create_gathers(
         station_array,
         event_df,
         source_type='ricker',
         velocity=2_000,
-        duration=2.0,
         dt=0.001,
+        freq_min=None,
+        freq_max=None,
         **kwargs,
 ):
     """Create gathers based on specified source time function."""
     out = []
+    # get a nice plotting duration
+    tt_min, tt_max = get_duration(station_array, event_df, velocity)
+    tt_total = tt_max - tt_min
+    t2 = tt_max + tt_total * 0.1
+    t1 = tt_min - tt_total * 0.1
+
     for station in station_array:
         gather = get_gather(
             station,
             event_df,
-            duration=duration,
-            dt=dt,
             velocity=velocity,
             source_type=source_type,
+            duration=t2,
+            dt=dt,
+            **kwargs,
         )
-        gather.columns.name = "phi"
-        gather.index.name = "time"
-        out.append(gather)
+        filtered = pass_filter(gather, freq_min=freq_min, freq_max=freq_max)
+        out.append(filtered.loc[slice(t1, t2)])
     return out
 
 
