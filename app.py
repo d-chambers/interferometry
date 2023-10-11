@@ -52,15 +52,42 @@ def create_gathers(
     return out
 
 
+def correlate(gather_1, gather_2):
+    """Correlate gathers together."""
+    assert gather_1.shape == gather_2.shape
+    shape = gather_1.shape
+
+    # first pad each array with 0s
+    padded_1 = np.zeros((shape[0] * 2, shape[1]), dtype=np.float64)
+    padded_1[:shape[0], :] = gather_1.values
+    padded_2 = np.zeros((shape[0] * 2, shape[1]), dtype=np.float64)
+    padded_2[:shape[0], :] = gather_2.values
+
+    # the transform to fourier domain
+    fft1 = np.fft.rfft(gather_1, axis=0)
+    fft2 = np.fft.rfft(gather_2, axis=0)
+
+    # perform correlation in freq domain
+    out_fft = fft1 * np.conj(fft2)
+
+    out_time = np.fft.irfft(out_fft, axis=0)
+    out = np.fft.fftshift(out_time, axes=0)
+
+    breakpoint()
+
+
 if __name__ == "__main__":
     velocity = 2_000  # m /s
     station_array = np.array([[-600, 0], [600, 0]])  # in m
     event_array, phi = generate_event_locations(station_array)
 
     gathers = create_gathers(station_array, event_array)
+
+    correlation = correlate(gathers[0], gathers[1])
+
+
+
     for gather in gathers:
-
-
         plot_gather(gather, phi)
 
     plot_map(station_array, event_array)
